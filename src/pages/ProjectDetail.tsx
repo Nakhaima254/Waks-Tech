@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { ListView } from '@/components/tasks/ListView';
+import { CalendarView } from '@/components/tasks/CalendarView';
 import { TaskDetailPanel } from '@/components/tasks/TaskDetailPanel';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
 import {
@@ -133,11 +134,7 @@ export function ProjectDetail() {
         <div className="flex-1 overflow-hidden">
           {currentView === 'kanban' && <KanbanBoard projectId={project.id} />}
           {currentView === 'list' && <ListView projectId={project.id} />}
-          {currentView === 'calendar' && (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              Calendar view coming soon...
-            </div>
-          )}
+          {currentView === 'calendar' && <CalendarView projectId={project.id} />}
           {currentView === 'timeline' && (
             <div className="flex items-center justify-center h-full text-muted-foreground">
               Timeline view coming soon...
