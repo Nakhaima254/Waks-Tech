@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { ListView } from '@/components/tasks/ListView';
 import { CalendarView } from '@/components/tasks/CalendarView';
+import { TimelineView } from '@/components/tasks/TimelineView';
 import { TaskDetailPanel } from '@/components/tasks/TaskDetailPanel';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
 import {
@@ -135,11 +136,7 @@ export function ProjectDetail() {
           {currentView === 'kanban' && <KanbanBoard projectId={project.id} />}
           {currentView === 'list' && <ListView projectId={project.id} />}
           {currentView === 'calendar' && <CalendarView projectId={project.id} />}
-          {currentView === 'timeline' && (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              Timeline view coming soon...
-            </div>
-          )}
+          {currentView === 'timeline' && <TimelineView projectId={project.id} />}
         </div>
       </div>
 
