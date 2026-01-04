@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Project, Task, TeamMember, Comment, Notification, UserPreferences, Status } from '@/types';
-import { projects as initialProjects, tasks as initialTasks, teamMembers as initialTeamMembers, comments as initialComments, notifications as initialNotifications, generateId } from '@/data/mockData';
+import { generateId } from '@/data/mockData';
 
 interface ProjectContextType {
   // Data
@@ -73,6 +73,7 @@ const defaultPreferences: UserPreferences = {
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
@@ -81,7 +82,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load data from localStorage on mount
+  // Load data from localStorage on mount - start fresh with empty data
   useEffect(() => {
     const loadedProjects = localStorage.getItem(STORAGE_KEYS.projects);
     const loadedTasks = localStorage.getItem(STORAGE_KEYS.tasks);
@@ -89,10 +90,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     const loadedNotifications = localStorage.getItem(STORAGE_KEYS.notifications);
     const loadedPreferences = localStorage.getItem(STORAGE_KEYS.preferences);
 
-    setProjects(loadedProjects ? JSON.parse(loadedProjects) : initialProjects);
-    setTasks(loadedTasks ? JSON.parse(loadedTasks) : initialTasks);
-    setComments(loadedComments ? JSON.parse(loadedComments) : initialComments);
-    setNotifications(loadedNotifications ? JSON.parse(loadedNotifications) : initialNotifications);
+    // Use empty arrays as defaults instead of mock data
+    setProjects(loadedProjects ? JSON.parse(loadedProjects) : []);
+    setTasks(loadedTasks ? JSON.parse(loadedTasks) : []);
+    setComments(loadedComments ? JSON.parse(loadedComments) : []);
+    setNotifications(loadedNotifications ? JSON.parse(loadedNotifications) : []);
     setPreferences(loadedPreferences ? JSON.parse(loadedPreferences) : defaultPreferences);
     setIsInitialized(true);
   }, []);
@@ -226,7 +228,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     comments.filter(c => c.taskId === taskId).sort((a, b) => 
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-  const getTeamMember = (id: string) => initialTeamMembers.find(m => m.id === id);
+  const getTeamMember = (id: string) => teamMembers.find(m => m.id === id);
   const getUnreadNotificationCount = () => notifications.filter(n => !n.read).length;
   
   const searchTasks = (query: string): Task[] => {
@@ -243,7 +245,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     <ProjectContext.Provider value={{
       projects,
       tasks,
-      teamMembers: initialTeamMembers,
+      teamMembers,
       comments,
       notifications,
       preferences,
