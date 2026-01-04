@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Calendar, User, Tag, MessageSquare, Send, MoreHorizontal, Trash2 } from 'lucide-react';
+import { X, Calendar, User, Tag, MessageSquare, Send, MoreHorizontal, Trash2, Paperclip } from 'lucide-react';
 import { useProject } from '@/contexts/ProjectContext';
 import { Task, Status, Priority, TaskType, STATUS_LABELS, PRIORITY_LABELS, TYPE_LABELS, ROLE_LABELS } from '@/types';
+import { FileAttachments } from './FileAttachments';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -309,6 +310,11 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               )}
             </div>
           )}
+
+          {/* File Attachments */}
+          <div className="pt-4 border-t border-border">
+            <FileAttachments taskId={taskId} />
+          </div>
 
           {/* Comments */}
           <div className="space-y-4 pt-4 border-t border-border">
