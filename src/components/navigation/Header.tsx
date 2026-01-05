@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Plus, Command } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/contexts/ProjectContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -22,6 +23,7 @@ import { Input } from '@/components/ui/input';
 
 export function Header() {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const { 
     notifications, 
     getUnreadNotificationCount, 
@@ -39,6 +41,14 @@ export function Header() {
   const searchResults = searchTasks(localSearch);
   const unreadCount = getUnreadNotificationCount();
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  const userEmail = user?.email || '';
+  const userInitials = userEmail ? userEmail.substring(0, 2).toUpperCase() : 'U';
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   // Keyboard shortcut for search
   useEffect(() => {
@@ -147,21 +157,20 @@ export function Header() {
               <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted transition-colors">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                    DK
+                    {userInitials}
                   </AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-3 py-2 border-b">
-                <p className="font-medium">David Kim</p>
-                <p className="text-xs text-muted-foreground">david.k@waks.io</p>
+                <p className="font-medium">{userEmail}</p>
               </div>
               <DropdownMenuItem onClick={() => navigate('/settings')}>
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
