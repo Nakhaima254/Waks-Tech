@@ -11,6 +11,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { ProjectDetail } from "@/pages/ProjectDetail";
 import { CreateProject } from "@/pages/CreateProject";
 import { Auth } from "@/pages/Auth";
+import { Team } from "@/pages/Team";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,7 +36,7 @@ const App = () => (
                 <Route path="/projects/:projectId" element={<ProjectDetail />} />
                 <Route path="/my-tasks" element={<Dashboard />} />
                 <Route path="/calendar" element={<Dashboard />} />
-                <Route path="/team" element={<Dashboard />} />
+                <Route path="/team" element={<Team />} />
                 <Route path="/settings" element={<Dashboard />} />
               </Route>
               <Route path="*" element={<NotFound />} />
