@@ -15,6 +15,7 @@ import { Team } from "@/pages/Team";
 import { MyTasks } from "@/pages/MyTasks";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { Settings } from "@/pages/Settings";
+import { ProjectSettings } from "@/pages/ProjectSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/projects/new" element={<CreateProject />} />
                 <Route path="/projects/:projectId" element={<ProjectDetail />} />
+                <Route path="/projects/:projectId/settings" element={<ProjectSettings />} />
                 <Route path="/my-tasks" element={<MyTasks />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/team" element={<Team />} />
