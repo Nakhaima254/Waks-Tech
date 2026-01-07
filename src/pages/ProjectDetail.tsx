@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { LayoutGrid, List, Calendar as CalendarIcon, BarChart3, MoreHorizontal, Plus, Settings } from 'lucide-react';
 import { useProject } from '@/contexts/ProjectContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
@@ -10,6 +11,7 @@ import { CalendarView } from '@/components/tasks/CalendarView';
 import { TimelineView } from '@/components/tasks/TimelineView';
 import { TaskDetailPanel } from '@/components/tasks/TaskDetailPanel';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +32,7 @@ const views: { id: ViewType; label: string; icon: React.ElementType }[] = [
 export function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { projects, currentTaskId, setCurrentTaskId, setCurrentProjectId, deleteProject } = useProject();
   
   const [currentView, setCurrentView] = useState<ViewType>('kanban');
@@ -66,27 +69,27 @@ export function ProjectDetail() {
       {/* Main content */}
       <div className={cn(
         'flex-1 flex flex-col min-w-0 transition-all duration-300',
-        currentTaskId ? 'mr-0' : 'mr-0'
+        currentTaskId && !isMobile ? 'mr-0' : 'mr-0'
       )}>
         {/* Project header */}
-        <div className="flex-shrink-0 border-b border-border bg-card px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 border-b border-border bg-card px-4 md:px-6 py-3 md:py-4">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
               <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-primary-foreground"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-primary-foreground shrink-0"
                 style={{ backgroundColor: project.color }}
               >
                 {project.title.charAt(0)}
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">{project.title}</h1>
-                <p className="text-sm text-muted-foreground">{project.description}</p>
+              <div className="min-w-0">
+                <h1 className="text-lg md:text-xl font-bold text-foreground truncate">{project.title}</h1>
+                <p className="text-xs md:text-sm text-muted-foreground truncate hidden sm:block">{project.description}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" onClick={() => setCreateTaskOpen(true)} className="gap-2">
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <Button size={isMobile ? "icon" : "sm"} onClick={() => setCreateTaskOpen(true)} className={cn(!isMobile && "gap-2")}>
                 <Plus className="h-4 w-4" />
-                Add Task
+                {!isMobile && <span>Add Task</span>}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -112,19 +115,19 @@ export function ProjectDetail() {
           </div>
 
           {/* View tabs */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin pb-1">
             {views.map(view => (
               <button
                 key={view.id}
                 onClick={() => setCurrentView(view.id)}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap',
                   currentView === view.id
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
               >
-                <view.icon className="h-4 w-4" />
+                <view.icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 {view.label}
               </button>
             ))}
@@ -140,12 +143,25 @@ export function ProjectDetail() {
         </div>
       </div>
 
-      {/* Task detail panel */}
-      {currentTaskId && (
-        <TaskDetailPanel 
-          taskId={currentTaskId} 
-          onClose={() => setCurrentTaskId(null)} 
-        />
+      {/* Task detail panel - Sheet on mobile, sidebar on desktop */}
+      {isMobile ? (
+        <Sheet open={!!currentTaskId} onOpenChange={(open) => !open && setCurrentTaskId(null)}>
+          <SheetContent side="right" className="p-0 w-full sm:max-w-lg">
+            {currentTaskId && (
+              <TaskDetailPanel 
+                taskId={currentTaskId} 
+                onClose={() => setCurrentTaskId(null)} 
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        currentTaskId && (
+          <TaskDetailPanel 
+            taskId={currentTaskId} 
+            onClose={() => setCurrentTaskId(null)} 
+          />
+        )
       )}
 
       {/* Create task dialog */}
