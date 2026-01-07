@@ -107,15 +107,46 @@ export function ProjectSettings() {
     navigate(`/projects/${project.id}`);
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (selectedMemberId && !projectMemberIds.includes(selectedMemberId)) {
+      const member = allTeamMembers.find(m => m.id === selectedMemberId);
+      
       setProjectMemberIds(prev => [...prev, selectedMemberId]);
       setSelectedMemberId('');
       setAddMemberOpen(false);
-      toast({
-        title: 'Member added',
-        description: 'Team member has been added to the project.',
-      });
+
+      // Send invitation email
+      if (member) {
+        try {
+          const { error } = await supabase.functions.invoke('send-team-invitation', {
+            body: {
+              memberName: member.name,
+              memberEmail: member.email,
+              projectName: project.title,
+            },
+          });
+
+          if (error) {
+            console.error('Error sending invitation:', error);
+            toast({
+              title: 'Member added',
+              description: 'Team member added but invitation email could not be sent.',
+              variant: 'default',
+            });
+          } else {
+            toast({
+              title: 'Member added',
+              description: `Invitation sent to ${member.email}`,
+            });
+          }
+        } catch (err) {
+          console.error('Error invoking function:', err);
+          toast({
+            title: 'Member added',
+            description: 'Team member added but invitation email could not be sent.',
+          });
+        }
+      }
     }
   };
 
