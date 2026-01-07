@@ -9,15 +9,17 @@ interface SidebarNavLinkProps {
   label: string;
   collapsed?: boolean;
   badge?: number;
+  onClick?: () => void;
 }
 
-export function SidebarNavLink({ to, icon: Icon, label, collapsed, badge }: SidebarNavLinkProps) {
+export function SidebarNavLink({ to, icon: Icon, label, collapsed, badge, onClick }: SidebarNavLinkProps) {
   const location = useLocation();
-  const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
+  const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to + '/'));
 
   return (
     <RouterNavLink
       to={to}
+      onClick={onClick}
       className={cn(
         'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
         'hover:bg-sidebar-accent',

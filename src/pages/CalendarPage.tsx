@@ -6,10 +6,10 @@ export function CalendarPage() {
   const { tasks } = useProject();
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6 h-full overflow-y-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
-        <p className="text-muted-foreground">View tasks by due date</p>
+        <h1 className="text-xl md:text-2xl font-bold text-foreground">Calendar</h1>
+        <p className="text-sm md:text-base text-muted-foreground">View tasks by due date</p>
       </div>
 
       {tasks.length === 0 ? (

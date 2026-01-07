@@ -4,6 +4,7 @@ import { Search, Bell, Plus, Command } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -24,6 +25,7 @@ import { Input } from '@/components/ui/input';
 export function Header() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
   const { 
     notifications, 
     getUnreadNotificationCount, 
@@ -77,30 +79,38 @@ export function Header() {
 
   return (
     <>
-      <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
+      <header className={cn(
+        "h-14 md:h-16 border-b border-border bg-card flex items-center justify-between px-4 md:px-6",
+        isMobile && "pl-16" // Space for mobile menu button
+      )}>
         {/* Search */}
         <button
           onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-3 px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition-colors w-80"
+          className={cn(
+            "flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition-colors",
+            isMobile ? "flex-1 max-w-[200px]" : "w-80"
+          )}
         >
-          <Search className="h-4 w-4" />
-          <span className="text-sm">Search tasks...</span>
-          <div className="ml-auto flex items-center gap-1 text-xs">
-            <kbd className="px-1.5 py-0.5 rounded bg-background border text-muted-foreground">⌘</kbd>
-            <kbd className="px-1.5 py-0.5 rounded bg-background border text-muted-foreground">K</kbd>
-          </div>
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="text-sm truncate">{isMobile ? "Search..." : "Search tasks..."}</span>
+          {!isMobile && (
+            <div className="ml-auto flex items-center gap-1 text-xs">
+              <kbd className="px-1.5 py-0.5 rounded bg-background border text-muted-foreground">⌘</kbd>
+              <kbd className="px-1.5 py-0.5 rounded bg-background border text-muted-foreground">K</kbd>
+            </div>
+          )}
         </button>
 
         {/* Right section */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* Quick create */}
           <Button 
-            size="sm" 
+            size={isMobile ? "icon" : "sm"}
             onClick={() => navigate('/projects/new')}
-            className="gap-2"
+            className={cn(!isMobile && "gap-2")}
           >
             <Plus className="h-4 w-4" />
-            New Project
+            {!isMobile && <span>New Project</span>}
           </Button>
 
           {/* Notifications */}
@@ -115,7 +125,7 @@ export function Header() {
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuContent align="end" className="w-72 md:w-80">
               <div className="flex items-center justify-between px-3 py-2 border-b">
                 <span className="font-semibold">Notifications</span>
                 {unreadCount > 0 && (
@@ -164,7 +174,7 @@ export function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-3 py-2 border-b">
-                <p className="font-medium">{userEmail}</p>
+                <p className="font-medium truncate">{userEmail}</p>
               </div>
               <DropdownMenuItem onClick={() => navigate('/settings')}>
                 Settings
@@ -180,18 +190,18 @@ export function Header() {
 
       {/* Search dialog */}
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="sm:max-w-xl p-0">
+        <DialogContent className="sm:max-w-xl p-0 max-w-[calc(100vw-2rem)] mx-4">
           <div className="flex items-center gap-3 px-4 border-b">
-            <Search className="h-5 w-5 text-muted-foreground" />
+            <Search className="h-5 w-5 text-muted-foreground shrink-0" />
             <Input
               ref={inputRef}
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               placeholder="Search tasks, projects..."
-              className="border-0 focus-visible:ring-0 text-lg py-6"
+              className="border-0 focus-visible:ring-0 text-base md:text-lg py-4 md:py-6"
             />
           </div>
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[60vh] md:max-h-96 overflow-y-auto">
             {localSearch && searchResults.length === 0 && (
               <div className="px-4 py-8 text-center text-muted-foreground">
                 No results found for "{localSearch}"
@@ -216,7 +226,7 @@ export function Header() {
                     </p>
                   </div>
                   <span className={cn(
-                    'text-xs px-2 py-0.5 rounded-full capitalize',
+                    'text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap',
                     task.status === 'done' && 'bg-status-done/10 text-status-done',
                     task.status === 'in-progress' && 'bg-status-progress/10 text-status-progress',
                     task.status === 'blocked' && 'bg-status-blocked/10 text-status-blocked'
