@@ -53,8 +53,36 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
   if (!task) return null;
 
-  const handleStatusChange = (status: Status) => {
+  const handleStatusChange = async (status: Status) => {
+    const previousStatus = task.status;
     updateTask(taskId, { status });
+    
+    // Send notification only for 'done' or 'review' status changes
+    if ((status === 'done' || status === 'review') && task.assigneeIds.length > 0) {
+      const assignees = teamMembers
+        .filter(m => task.assigneeIds.includes(m.id))
+        .map(m => ({ name: m.name, email: m.email }));
+      
+      const currentUser = teamMembers[0];
+
+      try {
+        const { error } = await supabase.functions.invoke('send-status-notification', {
+          body: {
+            assignees,
+            taskTitle: task.title,
+            projectName: project?.title || 'Project',
+            newStatus: status,
+            changedBy: currentUser?.name,
+          },
+        });
+
+        if (error) {
+          console.error('Error sending status notification emails:', error);
+        }
+      } catch (error) {
+        console.error('Error sending status notification emails:', error);
+      }
+    }
   };
 
   const handlePriorityChange = (priority: Priority) => {
