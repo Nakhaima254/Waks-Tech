@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { X, Calendar, User, Tag, MessageSquare, Send, MoreHorizontal, Trash2, Paperclip } from 'lucide-react';
+import { X, Calendar, User, Tag, MessageSquare, Send, MoreHorizontal, Trash2, Paperclip, Loader2 } from 'lucide-react';
 import { useProject } from '@/contexts/ProjectContext';
 import { Task, Status, Priority, TaskType, STATUS_LABELS, PRIORITY_LABELS, TYPE_LABELS, ROLE_LABELS } from '@/types';
 import { FileAttachments } from './FileAttachments';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +32,8 @@ interface TaskDetailPanelProps {
 
 export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
   const { 
-    tasks, 
+    tasks,
+    projects,
     updateTask, 
     deleteTask, 
     getTaskComments, 
@@ -40,11 +43,13 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
   } = useProject();
   
   const task = tasks.find(t => t.id === taskId);
+  const project = task ? projects.find(p => p.id === task.projectId) : undefined;
   const comments = getTaskComments(taskId);
   const [newComment, setNewComment] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task?.title || '');
   const [editedDescription, setEditedDescription] = useState(task?.description || '');
+  const [isSendingComment, setIsSendingComment] = useState(false);
 
   if (!task) return null;
 
@@ -68,10 +73,44 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
     updateTask(taskId, { assigneeIds: newAssignees });
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    addComment(taskId, newComment.trim(), 'tm-5'); // Current user
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !task) return;
+    
+    setIsSendingComment(true);
+    
+    // Get current user info (using first team member as fallback)
+    const currentUser = teamMembers[0];
+    const commentAuthor = currentUser?.name || 'Team Member';
+    
+    addComment(taskId, newComment.trim(), currentUser?.id || 'tm-5');
+    
+    // Send email notifications to all assignees
+    if (task.assigneeIds.length > 0) {
+      const assignees = teamMembers
+        .filter(m => task.assigneeIds.includes(m.id))
+        .map(m => ({ name: m.name, email: m.email }));
+
+      try {
+        const { error } = await supabase.functions.invoke('send-comment-notification', {
+          body: {
+            assignees,
+            taskTitle: task.title,
+            projectName: project?.title || 'Project',
+            commentAuthor,
+            commentContent: newComment.trim(),
+          },
+        });
+
+        if (error) {
+          console.error('Error sending comment notification emails:', error);
+        }
+      } catch (error) {
+        console.error('Error sending comment notification emails:', error);
+      }
+    }
+    
     setNewComment('');
+    setIsSendingComment(false);
   };
 
   const handleSaveEdits = () => {
@@ -353,10 +392,11 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
-                onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                onKeyDown={(e) => e.key === 'Enter' && !isSendingComment && handleAddComment()}
+                disabled={isSendingComment}
               />
-              <Button size="icon" onClick={handleAddComment} disabled={!newComment.trim()}>
-                <Send className="h-4 w-4" />
+              <Button size="icon" onClick={handleAddComment} disabled={!newComment.trim() || isSendingComment}>
+                {isSendingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>
