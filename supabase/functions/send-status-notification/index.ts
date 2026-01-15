@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -48,12 +49,46 @@ const getStatusEmoji = (status: string): string => {
   }
 };
 
+// Security: Sanitize user-provided content to prevent HTML injection
+const sanitizeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Security: Verify JWT authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabase.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
     const { 
       assignees, 
       taskTitle, 
@@ -62,17 +97,52 @@ const handler = async (req: Request): Promise<Response> => {
       changedBy,
     }: StatusChangeRequest = await req.json();
 
+    // Security: Validate required fields
+    if (!assignees || !Array.isArray(assignees) || assignees.length === 0) {
+      return new Response(JSON.stringify({ error: 'Invalid assignees' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    if (!taskTitle || !projectName || !newStatus) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    // Security: Verify recipients are actual team members
+    const { data: validEmails } = await supabase
+      .from('team_members')
+      .select('email')
+      .in('email', assignees.map(a => a.email));
+
+    if (!validEmails || validEmails.length !== assignees.length) {
+      return new Response(JSON.stringify({ error: 'Invalid recipients - must be team members' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
     console.log(`Sending status change notification for task: ${taskTitle} to ${assignees.length} assignee(s)`);
 
     const statusLabel = getStatusLabel(newStatus);
     const statusColor = getStatusColor(newStatus);
     const statusEmoji = getStatusEmoji(newStatus);
 
+    // Security: Sanitize user-provided content
+    const safeTaskTitle = sanitizeHtml(taskTitle);
+    const safeProjectName = sanitizeHtml(projectName);
+    const safeChangedBy = changedBy ? sanitizeHtml(changedBy) : null;
+
     const emailPromises = assignees.map(async (assignee) => {
+      const safeName = sanitizeHtml(assignee.name);
+      
       const emailResponse = await resend.emails.send({
         from: "Task Updates <onboarding@resend.dev>",
         to: [assignee.email],
-        subject: `${statusEmoji} Task moved to ${statusLabel}: ${taskTitle}`,
+        subject: `${statusEmoji} Task moved to ${statusLabel}: ${safeTaskTitle}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -87,15 +157,15 @@ const handler = async (req: Request): Promise<Response> => {
             
             <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
               <p style="font-size: 16px; margin-bottom: 20px;">
-                Hi <strong>${assignee.name}</strong>,
+                Hi <strong>${safeName}</strong>,
               </p>
               
               <p style="font-size: 16px; margin-bottom: 20px;">
-                ${changedBy ? `<strong>${changedBy}</strong> has` : 'The'} updated the status of a task you're assigned to.
+                ${safeChangedBy ? `<strong>${safeChangedBy}</strong> has` : 'The'} updated the status of a task you're assigned to.
               </p>
               
               <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #111827;">${taskTitle}</h2>
+                <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #111827;">${safeTaskTitle}</h2>
                 
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <span style="font-size: 14px; color: #6b7280;">New Status:</span>
@@ -106,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
                 </div>
                 
                 <p style="margin: 16px 0 0 0; font-size: 14px; color: #6b7280;">
-                  Project: <strong style="color: #374151;">${projectName}</strong>
+                  Project: <strong style="color: #374151;">${safeProjectName}</strong>
                 </p>
               </div>
               

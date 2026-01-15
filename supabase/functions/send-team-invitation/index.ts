@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -16,6 +17,16 @@ interface InvitationRequest {
   inviterName?: string;
 }
 
+// Security: Sanitize user-provided content to prevent HTML injection
+const sanitizeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -23,14 +34,60 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Security: Verify JWT authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabase.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
     const { memberName, memberEmail, projectName, inviterName }: InvitationRequest = await req.json();
 
+    // Security: Validate required fields
+    if (!memberName || !memberEmail || !projectName) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    // Security: Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(memberEmail)) {
+      return new Response(JSON.stringify({ error: 'Invalid email format' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
     console.log(`Sending invitation to ${memberEmail} for project ${projectName}`);
+
+    // Security: Sanitize all user-provided content
+    const safeMemberName = sanitizeHtml(memberName);
+    const safeProjectName = sanitizeHtml(projectName);
+    const safeInviterName = inviterName ? sanitizeHtml(inviterName) : null;
 
     const emailResponse = await resend.emails.send({
       from: "Project Invitation <onboarding@resend.dev>",
       to: [memberEmail],
-      subject: `You've been added to ${projectName}`,
+      subject: `You've been added to ${safeProjectName}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -45,11 +102,11 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="font-size: 16px; margin-bottom: 20px;">
-              Hi <strong>${memberName}</strong>,
+              Hi <strong>${safeMemberName}</strong>,
             </p>
             
             <p style="font-size: 16px; margin-bottom: 20px;">
-              ${inviterName ? `<strong>${inviterName}</strong> has` : 'You have been'} added you to the project <strong>"${projectName}"</strong>.
+              ${safeInviterName ? `<strong>${safeInviterName}</strong> has` : 'You have been'} added you to the project <strong>"${safeProjectName}"</strong>.
             </p>
             
             <p style="font-size: 16px; margin-bottom: 30px;">

@@ -29,6 +29,25 @@ interface FileAttachmentsProps {
   taskId: string;
 }
 
+// Security: Allowed file types for upload
+const ALLOWED_FILE_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.ms-excel',
+  'text/plain', 'text/csv'
+];
+
+// Security: Max file size (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// Security: Sanitize filename to prevent path traversal and special characters
+const sanitizeFilename = (name: string): string => {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255);
+};
+
 export function FileAttachments({ taskId }: FileAttachmentsProps) {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -76,10 +95,44 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    // Security: Get current user for uploaded_by field
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to upload files',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     for (const file of Array.from(files)) {
       try {
+        // Security: Validate file type
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+          toast({
+            title: 'Invalid file type',
+            description: `${file.name} is not allowed. Accepted types: images, PDF, Word, Excel, CSV, text files.`,
+            variant: 'destructive',
+          });
+          continue;
+        }
+
+        // Security: Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+          toast({
+            title: 'File too large',
+            description: `${file.name} exceeds the 10MB limit`,
+            variant: 'destructive',
+          });
+          continue;
+        }
+
+        // Security: Sanitize filename
+        const sanitizedName = sanitizeFilename(file.name);
+
         // Check if file with same name exists
         const existingFile = attachments.find(a => a.file_name === file.name);
         let newVersion = 1;
@@ -97,8 +150,8 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
             .eq('file_name', file.name);
         }
 
-        // Upload to storage
-        const filePath = `${taskId}/${Date.now()}-${file.name}`;
+        // Security: Use cryptographically random UUID for file path
+        const filePath = `${taskId}/${crypto.randomUUID()}-${sanitizedName}`;
         const { error: uploadError } = await supabase.storage
           .from('task-attachments')
           .upload(filePath, file);
@@ -113,7 +166,7 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
           continue;
         }
 
-        // Save attachment record
+        // Security: Set uploaded_by to current user ID for RLS
         const { error: dbError } = await supabase
           .from('file_attachments')
           .insert({
@@ -124,6 +177,7 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
             file_size: file.size,
             version: newVersion,
             is_latest: true,
+            uploaded_by: user.id,
           });
 
         if (dbError) {
@@ -256,6 +310,7 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
           ref={fileInputRef}
           type="file"
           multiple
+          accept={ALLOWED_FILE_TYPES.join(',')}
           className="hidden"
           onChange={handleFileUpload}
         />
@@ -368,6 +423,7 @@ interface FilePreviewDialogProps {
 
 function FilePreviewDialog({ attachment, onClose }: FilePreviewDialogProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (attachment) {
@@ -379,12 +435,21 @@ function FilePreviewDialog({ attachment, onClose }: FilePreviewDialogProps) {
 
   const loadPreview = async () => {
     if (!attachment) return;
+    setIsLoading(true);
 
-    const { data } = supabase.storage
+    // Security: Use signed URLs instead of public URLs
+    const { data, error } = await supabase.storage
       .from('task-attachments')
-      .getPublicUrl(attachment.file_path);
+      .createSignedUrl(attachment.file_path, 3600); // 1 hour expiry
 
-    setPreviewUrl(data.publicUrl);
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      setIsLoading(false);
+      return;
+    }
+
+    setPreviewUrl(data.signedUrl);
+    setIsLoading(false);
   };
 
   return (
@@ -394,20 +459,21 @@ function FilePreviewDialog({ attachment, onClose }: FilePreviewDialogProps) {
           <DialogTitle>{attachment?.file_name}</DialogTitle>
         </DialogHeader>
         <div className="flex items-center justify-center min-h-[400px] overflow-auto">
-          {previewUrl && attachment?.file_type.startsWith('image/') && (
+          {isLoading ? (
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          ) : previewUrl && attachment?.file_type.startsWith('image/') ? (
             <img
               src={previewUrl}
               alt={attachment.file_name}
               className="max-w-full max-h-[70vh] object-contain rounded-lg"
             />
-          )}
-          {previewUrl && attachment?.file_type === 'application/pdf' && (
+          ) : previewUrl && attachment?.file_type === 'application/pdf' ? (
             <iframe
               src={previewUrl}
               className="w-full h-[70vh] rounded-lg"
               title={attachment.file_name}
             />
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
