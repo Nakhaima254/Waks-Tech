@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Plus,
   Menu,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/contexts/ProjectContext';
@@ -19,6 +20,7 @@ import { SidebarNavLink } from './SidebarNavLink';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -27,6 +29,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const unreadCount = getUnreadNotificationCount();
+  const { isAdmin } = useUserRole();
 
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
@@ -56,6 +59,9 @@ export function Sidebar() {
         <SidebarNavLink to="/my-tasks" icon={CheckSquare} label="My Tasks" collapsed={collapsed && !isMobile} badge={unreadCount} onClick={onNavigate} />
         <SidebarNavLink to="/calendar" icon={Calendar} label="Calendar" collapsed={collapsed && !isMobile} onClick={onNavigate} />
         <SidebarNavLink to="/team" icon={Users} label="Team" collapsed={collapsed && !isMobile} onClick={onNavigate} />
+        {isAdmin && (
+          <SidebarNavLink to="/admin" icon={ShieldCheck} label="Admin" collapsed={collapsed && !isMobile} onClick={onNavigate} />
+        )}
         
         {/* Projects section */}
         <div className="pt-4">
