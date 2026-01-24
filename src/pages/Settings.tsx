@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
 
 interface Profile {
   id: string;
@@ -85,10 +86,10 @@ export function Settings() {
         setProfile(newProfile);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      logError('fetchProfile', error);
       toast({
         title: 'Error',
-        description: 'Failed to load profile',
+        description: getSafeErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -120,10 +121,10 @@ export function Settings() {
         description: 'Profile updated successfully',
       });
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logError('handleSave', error);
       toast({
         title: 'Error',
-        description: 'Failed to update profile',
+        description: getSafeErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -187,10 +188,10 @@ export function Settings() {
         description: 'Avatar updated successfully',
       });
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      logError('handleAvatarUpload', error);
       toast({
         title: 'Error',
-        description: 'Failed to upload avatar',
+        description: getSafeErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

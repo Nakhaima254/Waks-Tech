@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Users } from 'lucide-react';
 import { Role, ROLE_LABELS } from '@/types';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
 
 interface TeamMember {
   id: string;
@@ -40,7 +41,8 @@ export function Team() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      toast({ title: 'Error loading team members', description: error.message, variant: 'destructive' });
+      logError('fetchTeamMembers', error);
+      toast({ title: 'Error loading team members', description: getSafeErrorMessage(error), variant: 'destructive' });
     } else {
       setTeamMembers(data || []);
     }
@@ -69,7 +71,8 @@ export function Team() {
     });
 
     if (error) {
-      toast({ title: 'Error adding team member', description: error.message, variant: 'destructive' });
+      logError('handleAdd', error);
+      toast({ title: 'Error adding team member', description: getSafeErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Team member added successfully' });
       setFormData({ name: '', email: '', role: 'developer' });
@@ -95,7 +98,8 @@ export function Team() {
       .eq('id', editingMember.id);
 
     if (error) {
-      toast({ title: 'Error updating team member', description: error.message, variant: 'destructive' });
+      logError('handleEdit', error);
+      toast({ title: 'Error updating team member', description: getSafeErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Team member updated successfully' });
       setIsEditOpen(false);
@@ -108,7 +112,8 @@ export function Team() {
     const { error } = await supabase.from('team_members').delete().eq('id', id);
 
     if (error) {
-      toast({ title: 'Error deleting team member', description: error.message, variant: 'destructive' });
+      logError('handleDelete', error);
+      toast({ title: 'Error deleting team member', description: getSafeErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Team member deleted successfully' });
       fetchTeamMembers();

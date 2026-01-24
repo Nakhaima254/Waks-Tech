@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logError } from '@/lib/errorHandler';
 
 export type AppRole = 'admin' | 'moderator' | 'user';
 
@@ -51,6 +52,7 @@ export function useUserRole(): UserRoleState {
           error: null,
         });
       } catch (err) {
+        logError('useUserRole', err);
         setState({
           role: null,
           isAdmin: false,

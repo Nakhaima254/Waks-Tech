@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Shield, ShieldCheck, User, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
 
 interface UserWithRole {
   id: string;
@@ -64,7 +65,8 @@ export function AdminDashboard() {
 
       setUsers(usersWithEmail);
     } catch (err) {
-      toast.error('Failed to fetch users');
+      logError('fetchUsers', err);
+      toast.error(getSafeErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +92,8 @@ export function AdminDashboard() {
       ));
       toast.success(`Role updated to ${ROLE_CONFIG[newRole].label}`);
     } catch (err) {
-      toast.error('Failed to update role');
+      logError('updateUserRole', err);
+      toast.error(getSafeErrorMessage(err));
     } finally {
       setUpdatingUserId(null);
     }

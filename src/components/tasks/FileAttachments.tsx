@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
 import {
   Dialog,
   DialogContent,
@@ -68,7 +69,7 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching attachments:', error);
+      logError('fetchAttachments', error);
       return;
     }
 
@@ -84,7 +85,7 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
       .order('version', { ascending: false });
 
     if (error) {
-      console.error('Error fetching version history:', error);
+      logError('getVersionHistory', error);
       return [];
     }
 
@@ -157,10 +158,10 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
           .upload(filePath, file);
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
+          logError('handleFileUpload', uploadError);
           toast({
             title: 'Upload failed',
-            description: uploadError.message,
+            description: getSafeErrorMessage(uploadError),
             variant: 'destructive',
           });
           continue;
@@ -181,10 +182,10 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
           });
 
         if (dbError) {
-          console.error('Database error:', dbError);
+          logError('handleFileUpload:db', dbError);
           toast({
             title: 'Failed to save attachment',
-            description: dbError.message,
+            description: getSafeErrorMessage(dbError),
             variant: 'destructive',
           });
           continue;
@@ -195,10 +196,10 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
           description: `${file.name}${existingFile ? ` (v${newVersion})` : ''}`,
         });
       } catch (error) {
-        console.error('Error uploading file:', error);
+        logError('handleFileUpload', error);
         toast({
           title: 'Upload failed',
-          description: 'An unexpected error occurred',
+          description: getSafeErrorMessage(error),
           variant: 'destructive',
         });
       }
@@ -217,9 +218,10 @@ export function FileAttachments({ taskId }: FileAttachmentsProps) {
       .download(attachment.file_path);
 
     if (error) {
+      logError('handleDownload', error);
       toast({
         title: 'Download failed',
-        description: error.message,
+        description: getSafeErrorMessage(error),
         variant: 'destructive',
       });
       return;
@@ -443,7 +445,7 @@ function FilePreviewDialog({ attachment, onClose }: FilePreviewDialogProps) {
       .createSignedUrl(attachment.file_path, 3600); // 1 hour expiry
 
     if (error) {
-      console.error('Error creating signed URL:', error);
+      logError('loadPreview', error);
       setIsLoading(false);
       return;
     }

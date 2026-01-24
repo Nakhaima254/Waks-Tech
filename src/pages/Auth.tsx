@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Loader2, LayoutDashboard } from 'lucide-react';
 import { z } from 'zod';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -52,11 +53,8 @@ export function Auth() {
     setIsSubmitting(false);
 
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Invalid email or password');
-      } else {
-        toast.error(error.message);
-      }
+      logError('handleLogin', error);
+      toast.error(getSafeErrorMessage(error));
     } else {
       toast.success('Welcome back!');
       navigate('/');
@@ -72,11 +70,8 @@ export function Auth() {
     setIsSubmitting(false);
 
     if (error) {
-      if (error.message.includes('User already registered')) {
-        toast.error('An account with this email already exists');
-      } else {
-        toast.error(error.message);
-      }
+      logError('handleSignUp', error);
+      toast.error(getSafeErrorMessage(error));
     } else {
       toast.success('Account created successfully!');
       navigate('/');
