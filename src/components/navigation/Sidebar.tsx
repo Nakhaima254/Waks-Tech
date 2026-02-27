@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/contexts/ProjectContext';
+import logoLandscape from '@/assets/logo-landscape.png';
 import { SidebarNavLink } from './SidebarNavLink';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -36,11 +37,12 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         <Link to="/" className="flex items-center gap-2" onClick={onNavigate}>
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <span className="text-sm font-bold text-primary-foreground">W</span>
-          </div>
-          {(!collapsed || isMobile) && (
-            <span className="text-lg font-bold text-sidebar-foreground">Waks PMS</span>
+          {(!collapsed || isMobile) ? (
+            <img src={logoLandscape} alt="Waks Tech Solutions" className="h-8" />
+          ) : (
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <span className="text-sm font-bold text-primary-foreground">W</span>
+            </div>
           )}
         </Link>
         {!isMobile && (

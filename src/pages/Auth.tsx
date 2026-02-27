@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Loader2, LayoutDashboard } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import logoPortrait from '@/assets/logo-portrait.png';
 import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
@@ -107,10 +108,7 @@ export function Auth() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <LayoutDashboard className="h-8 w-8" />
-          </div>
-          <h1 className="text-3xl font-bold gradient-text">Waks PMS</h1>
+          <img src={logoPortrait} alt="Waks Tech Solutions" className="h-32 mx-auto mb-4" />
           <p className="text-muted-foreground mt-2">Project Management System</p>
         </div>
 
