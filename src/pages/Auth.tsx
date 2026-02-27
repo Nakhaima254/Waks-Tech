@@ -82,6 +82,10 @@ export function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
 
     setIsSubmitting(true);
     const { error } = await signUp(email, password);
