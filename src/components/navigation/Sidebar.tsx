@@ -41,9 +41,7 @@ export function Sidebar() {
           {(!collapsed || isMobile) ? (
             <img src={logoLandscape} alt="Waks Tech Solutions" className="h-10 brightness-0 invert" />
           ) : (
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-sm font-bold text-primary-foreground">W</span>
-            </div>
+            <img src={logoIcon} alt="Waks Tech" className="h-8 w-8" />
           )}
         </Link>
         {!isMobile && (
