@@ -108,7 +108,7 @@ export function Auth() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <img src={logoPortrait} alt="Waks Tech Solutions" className="h-32 mx-auto mb-4" />
+          <img src={logoPortrait} alt="Waks Tech Solutions" className="h-40 mx-auto mb-4" />
           <p className="text-muted-foreground mt-2">Project Management System</p>
         </div>
 
