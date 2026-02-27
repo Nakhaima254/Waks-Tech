@@ -38,7 +38,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         <Link to="/" className="flex items-center gap-2" onClick={onNavigate}>
           {(!collapsed || isMobile) ? (
-            <img src={logoLandscape} alt="Waks Tech Solutions" className="h-8" />
+            <img src={logoLandscape} alt="Waks Tech Solutions" className="h-10 brightness-0 invert" />
           ) : (
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <span className="text-sm font-bold text-primary-foreground">W</span>
