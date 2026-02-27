@@ -66,14 +66,14 @@
     --status-done: 142 76% 36%;
 
     /* Sidebar */
-    --sidebar-background: 222 47% 11%;
+    --sidebar-background: 221 69% 14%;
     --sidebar-foreground: 215 20% 85%;
-    --sidebar-primary: 234 89% 70%;
+    --sidebar-primary: 28 91% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 18%;
+    --sidebar-accent: 221 69% 20%;
     --sidebar-accent-foreground: 215 20% 95%;
-    --sidebar-border: 222 32% 20%;
-    --sidebar-ring: 234 89% 58%;
+    --sidebar-border: 221 50% 22%;
+    --sidebar-ring: 28 91% 56%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(234 89% 58%) 0%, hsl(280 68% 60%) 100%);
