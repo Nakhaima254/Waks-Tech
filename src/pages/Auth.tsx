@@ -235,6 +235,7 @@ export function Auth() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                     />
+                  </div>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting ? (
                       <>
