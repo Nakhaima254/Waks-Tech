@@ -226,9 +226,8 @@ export function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                    <Input
+                    <PasswordInput
                       id="signup-confirm-password"
-                      type="password"
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
