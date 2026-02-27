@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Loader2, LayoutDashboard } from 'lucide-react';
 import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
+import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
