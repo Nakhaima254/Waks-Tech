@@ -177,6 +177,7 @@ export function Auth() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
+                    <PasswordStrengthIndicator password={password} />
                   </div>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting ? (
