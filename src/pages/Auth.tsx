@@ -11,6 +11,7 @@ import { Loader2, LayoutDashboard } from 'lucide-react';
 import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandler';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
+import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -131,7 +132,10 @@ export function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Password</Label>
+                      <ForgotPasswordDialog />
+                    </div>
                     <Input
                       id="login-password"
                       type="password"
