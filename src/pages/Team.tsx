@@ -226,21 +226,21 @@ export function Team() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {teamMembers.map((member) => (
-            <Card key={member.id} className="group">
+             <Card key={member.id} className="group overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar className="h-12 w-12 shrink-0">
                       <AvatarFallback className="bg-primary/10 text-primary font-medium">
                         {member.initials || getInitials(member.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <CardTitle className="text-base">{member.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{member.email}</p>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base truncate">{member.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground truncate">{member.email}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(member)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
