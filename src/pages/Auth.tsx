@@ -24,6 +24,7 @@ export function Auth() {
   const { user, isLoading, signIn, signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
