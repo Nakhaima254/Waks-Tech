@@ -17,6 +17,7 @@ import { CalendarPage } from "@/pages/CalendarPage";
 import { Settings } from "@/pages/Settings";
 import { ProjectSettings } from "@/pages/ProjectSettings";
 import { AdminDashboard } from "@/pages/AdminDashboard";
+import { ResetPassword } from "@/pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
