@@ -415,14 +415,32 @@ export function Settings() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UTC">UTC</SelectItem>
-                    <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                    <SelectItem value="America/Chicago">Central Time</SelectItem>
-                    <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                    <SelectItem value="Europe/London">London</SelectItem>
-                    <SelectItem value="Europe/Paris">Paris</SelectItem>
-                    <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
-                    <SelectItem value="Asia/Shanghai">Shanghai</SelectItem>
+                    <SelectItem value="Africa/Johannesburg">Johannesburg (SAST)</SelectItem>
+                    <SelectItem value="Africa/Lagos">Lagos (WAT)</SelectItem>
+                    <SelectItem value="Africa/Nairobi">Nairobi (EAT)</SelectItem>
+                    <SelectItem value="Africa/Cairo">Cairo (EET)</SelectItem>
+                    <SelectItem value="Africa/Casablanca">Casablanca (WET)</SelectItem>
+                    <SelectItem value="Africa/Accra">Accra (GMT)</SelectItem>
+                    <SelectItem value="Africa/Addis_Ababa">Addis Ababa (EAT)</SelectItem>
+                    <SelectItem value="Africa/Dar_es_Salaam">Dar es Salaam (EAT)</SelectItem>
+                    <SelectItem value="Africa/Kinshasa">Kinshasa (WAT)</SelectItem>
+                    <SelectItem value="Africa/Luanda">Luanda (WAT)</SelectItem>
+                    <SelectItem value="America/New_York">Eastern Time (EST)</SelectItem>
+                    <SelectItem value="America/Chicago">Central Time (CST)</SelectItem>
+                    <SelectItem value="America/Denver">Mountain Time (MST)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific Time (PST)</SelectItem>
+                    <SelectItem value="America/Sao_Paulo">São Paulo (BRT)</SelectItem>
+                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                    <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                    <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
+                    <SelectItem value="Europe/Moscow">Moscow (MSK)</SelectItem>
+                    <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
+                    <SelectItem value="Asia/Kolkata">Mumbai (IST)</SelectItem>
+                    <SelectItem value="Asia/Singapore">Singapore (SGT)</SelectItem>
+                    <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                    <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                    <SelectItem value="Australia/Sydney">Sydney (AEST)</SelectItem>
+                    <SelectItem value="Pacific/Auckland">Auckland (NZST)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
