@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield } from 'lucide-react';
+import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock } from 'lucide-react';
+import { PasswordInput } from '@/components/auth/PasswordInput';
+import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +39,12 @@ export function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -180,6 +188,35 @@ export function Settings() {
       toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({ title: 'Error', description: 'Please fill in all password fields', variant: 'destructive' });
+      return;
+    }
+    if (passwordData.newPassword.length < 8) {
+      toast({ title: 'Error', description: 'New password must be at least 8 characters', variant: 'destructive' });
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({ title: 'Error', description: 'New passwords do not match', variant: 'destructive' });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: passwordData.newPassword });
+      if (error) throw error;
+
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast({ title: 'Success', description: 'Password updated successfully' });
+    } catch (error) {
+      logError('handleChangePassword', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -517,6 +554,59 @@ export function Settings() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Change Password
+              </CardTitle>
+              <CardDescription>Update your password to keep your account secure</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new_password" className="text-sm font-medium">New Password</Label>
+                <PasswordInput
+                  id="new_password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  placeholder="Enter new password"
+                />
+                {passwordData.newPassword && (
+                  <PasswordStrengthIndicator password={passwordData.newPassword} />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm_password" className="text-sm font-medium">Confirm New Password</Label>
+                <PasswordInput
+                  id="confirm_password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm new password"
+                />
+                {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+                  <p className="text-sm text-destructive">Passwords do not match</p>
+                )}
+              </div>
+              <Button
+                onClick={handleChangePassword}
+                disabled={isChangingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                className="w-full sm:w-auto"
+              >
+                {isChangingPassword ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Update Password
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
 
