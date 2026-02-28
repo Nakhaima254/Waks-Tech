@@ -640,6 +640,66 @@ export function Settings() {
           <Card className="border-destructive/30">
             <CardHeader>
               <CardTitle className="text-lg text-destructive flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Delete Account
+              </CardTitle>
+              <CardDescription>Permanently delete your account and all associated data. This action cannot be undone.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full sm:w-auto">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-5 w-5" />
+                      Delete Account Permanently
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <p>This will permanently delete your account and all associated data. This action <strong>cannot be undone</strong>.</p>
+                      <div className="space-y-2 pt-2">
+                        <Label htmlFor="delete-confirm" className="text-sm font-medium text-foreground">
+                          Type <span className="font-mono font-bold text-destructive">DELETE</span> to confirm
+                        </Label>
+                        <Input
+                          id="delete-confirm"
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          placeholder="Type DELETE"
+                          className="border-destructive/50 focus-visible:ring-destructive"
+                        />
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeleteConfirmText('')}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete My Account'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="text-lg text-destructive flex items-center gap-2">
                 <LogOut className="h-5 w-5" />
                 Sign Out
               </CardTitle>
