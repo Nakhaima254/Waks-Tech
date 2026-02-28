@@ -557,6 +557,59 @@ export function Settings() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Change Password
+              </CardTitle>
+              <CardDescription>Update your password to keep your account secure</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new_password" className="text-sm font-medium">New Password</Label>
+                <PasswordInput
+                  id="new_password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  placeholder="Enter new password"
+                />
+                {passwordData.newPassword && (
+                  <PasswordStrengthIndicator password={passwordData.newPassword} />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm_password" className="text-sm font-medium">Confirm New Password</Label>
+                <PasswordInput
+                  id="confirm_password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm new password"
+                />
+                {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+                  <p className="text-sm text-destructive">Passwords do not match</p>
+                )}
+              </div>
+              <Button
+                onClick={handleChangePassword}
+                disabled={isChangingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                className="w-full sm:w-auto"
+              >
+                {isChangingPassword ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Update Password
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="border-destructive/30">
             <CardHeader>
               <CardTitle className="text-lg text-destructive flex items-center gap-2">
