@@ -46,6 +46,8 @@ export function Settings() {
     newPassword: '',
     confirmPassword: '',
   });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   
   const [formData, setFormData] = useState({
     full_name: '',
