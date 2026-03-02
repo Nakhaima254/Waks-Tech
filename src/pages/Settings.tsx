@@ -343,6 +343,20 @@ export function Settings() {
     setMfaVerifyCode('');
   };
 
+  const handleSignOutOtherSessions = async () => {
+    setIsRevokingOtherSessions(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'others' });
+      if (error) throw error;
+      toast({ title: 'Success', description: 'All other sessions have been signed out' });
+    } catch (error) {
+      logError('handleSignOutOtherSessions', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setIsRevokingOtherSessions(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
