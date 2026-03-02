@@ -872,11 +872,11 @@ export function Settings() {
                     <div className="flex items-center gap-1 mt-0.5">
                       <Clock className="h-3 w-3 text-muted-foreground" />
                       <p className="text-xs text-muted-foreground">
-                        Signed in {session?.created_at ? new Date(session.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'recently'}
+                        Signed in as {user?.email}
                       </p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Expires {session?.expires_at ? new Date(session.expires_at * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                      Session expires {session?.expires_at ? new Date(session.expires_at * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                     </p>
                   </div>
                 </div>
