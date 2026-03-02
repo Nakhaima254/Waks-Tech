@@ -257,6 +257,89 @@ export function Settings() {
     }
   };
 
+  const fetchMfaFactors = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+      setMfaFactors(data?.totp || []);
+    } catch (error) {
+      logError('fetchMfaFactors', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) fetchMfaFactors();
+  }, [user]);
+
+  const handleMfaEnroll = async () => {
+    setMfaEnrolling(true);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      if (error) throw error;
+      setMfaQrCode(data.totp.qr_code);
+      setMfaSecret(data.totp.secret);
+      setMfaFactorId(data.id);
+    } catch (error) {
+      logError('handleMfaEnroll', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setMfaEnrolling(false);
+    }
+  };
+
+  const handleMfaVerify = async () => {
+    if (!mfaFactorId || !mfaVerifyCode) return;
+    setMfaVerifying(true);
+    try {
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (challengeError) throw challengeError;
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaVerifyCode,
+      });
+      if (verifyError) throw verifyError;
+
+      toast({ title: 'Success', description: 'Two-factor authentication enabled successfully' });
+      setMfaQrCode(null);
+      setMfaSecret(null);
+      setMfaFactorId(null);
+      setMfaVerifyCode('');
+      await fetchMfaFactors();
+    } catch (error) {
+      logError('handleMfaVerify', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setMfaVerifying(false);
+    }
+  };
+
+  const handleMfaUnenroll = async (factorId: string) => {
+    setMfaUnenrolling(true);
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Two-factor authentication has been disabled' });
+      await fetchMfaFactors();
+    } catch (error) {
+      logError('handleMfaUnenroll', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setMfaUnenrolling(false);
+    }
+  };
+
+  const cancelMfaEnroll = () => {
+    if (mfaFactorId) {
+      supabase.auth.mfa.unenroll({ factorId: mfaFactorId }).catch(() => {});
+    }
+    setMfaQrCode(null);
+    setMfaSecret(null);
+    setMfaFactorId(null);
+    setMfaVerifyCode('');
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
