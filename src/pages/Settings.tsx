@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle, Smartphone, CheckCircle2, XCircle } from 'lucide-react';
+import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle, Smartphone, CheckCircle2, XCircle, Monitor, Clock } from 'lucide-react';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ interface Profile {
 }
 
 export function Settings() {
-  const { user, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +58,9 @@ export function Settings() {
   const [mfaVerifyCode, setMfaVerifyCode] = useState('');
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const [mfaUnenrolling, setMfaUnenrolling] = useState(false);
+  
+  // Session state
+  const [isRevokingOtherSessions, setIsRevokingOtherSessions] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -338,6 +341,20 @@ export function Settings() {
     setMfaSecret(null);
     setMfaFactorId(null);
     setMfaVerifyCode('');
+  };
+
+  const handleSignOutOtherSessions = async () => {
+    setIsRevokingOtherSessions(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'others' });
+      if (error) throw error;
+      toast({ title: 'Success', description: 'All other sessions have been signed out' });
+    } catch (error) {
+      logError('handleSignOutOtherSessions', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setIsRevokingOtherSessions(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -829,6 +846,75 @@ export function Settings() {
                   Set Up Two-Factor Authentication
                 </Button>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Session Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Monitor className="h-5 w-5" />
+                Session Management
+              </CardTitle>
+              <CardDescription>Manage your active sessions across devices</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-md bg-primary/10">
+                    <Monitor className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">Current Session</p>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">Active</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        Signed in as {user?.email}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Session expires {session?.expires_at ? new Date(session.expires_at * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  If you suspect unauthorized access, sign out all other sessions to secure your account.
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out Other Sessions
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Sign out all other sessions?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will sign out your account from all other devices and browsers. Your current session will remain active.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleSignOutOtherSessions}
+                        disabled={isRevokingOtherSessions}
+                      >
+                        {isRevokingOtherSessions ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Sign Out Others
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardContent>
           </Card>
 
