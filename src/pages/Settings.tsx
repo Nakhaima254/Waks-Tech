@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle, Smartphone, CheckCircle2, XCircle } from 'lucide-react';
+import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle, Smartphone, CheckCircle2, XCircle, Monitor, Clock } from 'lucide-react';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,9 @@ export function Settings() {
   const [mfaVerifyCode, setMfaVerifyCode] = useState('');
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const [mfaUnenrolling, setMfaUnenrolling] = useState(false);
+  
+  // Session state
+  const [isRevokingOtherSessions, setIsRevokingOtherSessions] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: '',
