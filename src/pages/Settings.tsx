@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle } from 'lucide-react';
+import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle, Smartphone, CheckCircle2, XCircle } from 'lucide-react';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,16 @@ export function Settings() {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
+  // 2FA state
+  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+  const [mfaEnrolling, setMfaEnrolling] = useState(false);
+  const [mfaQrCode, setMfaQrCode] = useState<string | null>(null);
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaVerifyCode, setMfaVerifyCode] = useState('');
+  const [mfaVerifying, setMfaVerifying] = useState(false);
+  const [mfaUnenrolling, setMfaUnenrolling] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -245,6 +255,89 @@ export function Settings() {
       setIsDeleting(false);
       setDeleteConfirmText('');
     }
+  };
+
+  const fetchMfaFactors = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+      setMfaFactors(data?.totp || []);
+    } catch (error) {
+      logError('fetchMfaFactors', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) fetchMfaFactors();
+  }, [user]);
+
+  const handleMfaEnroll = async () => {
+    setMfaEnrolling(true);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      if (error) throw error;
+      setMfaQrCode(data.totp.qr_code);
+      setMfaSecret(data.totp.secret);
+      setMfaFactorId(data.id);
+    } catch (error) {
+      logError('handleMfaEnroll', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setMfaEnrolling(false);
+    }
+  };
+
+  const handleMfaVerify = async () => {
+    if (!mfaFactorId || !mfaVerifyCode) return;
+    setMfaVerifying(true);
+    try {
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (challengeError) throw challengeError;
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaVerifyCode,
+      });
+      if (verifyError) throw verifyError;
+
+      toast({ title: 'Success', description: 'Two-factor authentication enabled successfully' });
+      setMfaQrCode(null);
+      setMfaSecret(null);
+      setMfaFactorId(null);
+      setMfaVerifyCode('');
+      await fetchMfaFactors();
+    } catch (error) {
+      logError('handleMfaVerify', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setMfaVerifying(false);
+    }
+  };
+
+  const handleMfaUnenroll = async (factorId: string) => {
+    setMfaUnenrolling(true);
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Two-factor authentication has been disabled' });
+      await fetchMfaFactors();
+    } catch (error) {
+      logError('handleMfaUnenroll', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setMfaUnenrolling(false);
+    }
+  };
+
+  const cancelMfaEnroll = () => {
+    if (mfaFactorId) {
+      supabase.auth.mfa.unenroll({ factorId: mfaFactorId }).catch(() => {});
+    }
+    setMfaQrCode(null);
+    setMfaSecret(null);
+    setMfaFactorId(null);
+    setMfaVerifyCode('');
   };
 
   const handleSignOut = async () => {
@@ -634,6 +727,108 @@ export function Settings() {
                   </>
                 )}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Two-Factor Authentication */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Two-Factor Authentication
+              </CardTitle>
+              <CardDescription>Add an extra layer of security to your account using an authenticator app</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {mfaFactors.filter(f => f.status === 'verified').length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <p className="text-sm font-medium text-green-700 dark:text-green-400">Two-factor authentication is enabled</p>
+                  </div>
+                  {mfaFactors.filter(f => f.status === 'verified').map(factor => (
+                    <div key={factor.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-primary/10">
+                          <Smartphone className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Authenticator App</p>
+                          <p className="text-xs text-muted-foreground">Added {new Date(factor.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Disable Two-Factor Authentication?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove the authenticator app from your account. Your account will be less secure.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleMfaUnenroll(factor.id)}
+                              disabled={mfaUnenrolling}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {mfaUnenrolling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                              Disable 2FA
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  ))}
+                </div>
+              ) : mfaQrCode ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">1. Scan this QR code with your authenticator app</p>
+                    <div className="flex justify-center p-4 bg-background rounded-lg border">
+                      <img src={mfaQrCode} alt="2FA QR Code" className="w-48 h-48" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Or enter this secret manually:</p>
+                    <code className="block text-xs p-2 bg-muted rounded-md text-center font-mono break-all select-all">{mfaSecret}</code>
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">2. Enter the 6-digit code from your app</p>
+                    <Input
+                      value={mfaVerifyCode}
+                      onChange={(e) => setMfaVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="text-center text-lg font-mono tracking-widest max-w-[200px]"
+                      maxLength={6}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleMfaVerify}
+                      disabled={mfaVerifying || mfaVerifyCode.length !== 6}
+                    >
+                      {mfaVerifying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                      Verify & Enable
+                    </Button>
+                    <Button variant="outline" onClick={cancelMfaEnroll}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button onClick={handleMfaEnroll} disabled={mfaEnrolling} className="w-full sm:w-auto">
+                  {mfaEnrolling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Smartphone className="h-4 w-4 mr-2" />}
+                  Set Up Two-Factor Authentication
+                </Button>
+              )}
             </CardContent>
           </Card>
 
