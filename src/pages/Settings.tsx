@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle, Smartphone, CheckCircle2, XCircle, Monitor, Clock } from 'lucide-react';
+import { Camera, Loader2, Save, User, Bell, Palette, Globe, LogOut, Mail, Phone, Briefcase, Shield, Lock, Trash2, AlertTriangle, Smartphone, CheckCircle2, XCircle, Monitor, Clock, History, KeyRound, ShieldCheck, ShieldAlert, UserX } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { Button } from '@/components/ui/button';
@@ -59,7 +61,11 @@ export function Settings() {
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const [mfaUnenrolling, setMfaUnenrolling] = useState(false);
   
-  // Session state
+  // Activity log state
+  const [activityLog, setActivityLog] = useState<any[]>([]);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(true);
+  
+
   const [isRevokingOtherSessions, setIsRevokingOtherSessions] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -146,6 +152,7 @@ export function Settings() {
         title: 'Success',
         description: 'Profile updated successfully',
       });
+      await logActivity('profile_update', 'Profile information was updated');
     } catch (error) {
       logError('handleSave', error);
       toast({
@@ -228,6 +235,7 @@ export function Settings() {
 
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       toast({ title: 'Success', description: 'Password updated successfully' });
+      await logActivity('password_change', 'Password was changed');
     } catch (error) {
       logError('handleChangePassword', error);
       toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
@@ -271,8 +279,47 @@ export function Settings() {
   };
 
   useEffect(() => {
-    if (user) fetchMfaFactors();
+    if (user) {
+      fetchMfaFactors();
+      fetchActivityLog();
+    }
   }, [user]);
+
+  const logActivity = useCallback(async (eventType: string, description: string, metadata: Record<string, any> = {}) => {
+    if (!user) return;
+    try {
+      await supabase.from('account_activity').insert({
+        user_id: user.id,
+        event_type: eventType,
+        description,
+        user_agent: navigator.userAgent,
+        metadata,
+      });
+      // Refresh activity log
+      fetchActivityLog();
+    } catch (error) {
+      // Silent fail for logging
+    }
+  }, [user]);
+
+  const fetchActivityLog = async () => {
+    if (!user) return;
+    setIsLoadingActivity(true);
+    try {
+      const { data, error } = await supabase
+        .from('account_activity')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      setActivityLog(data || []);
+    } catch (error) {
+      logError('fetchActivityLog', error);
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
 
   const handleMfaEnroll = async () => {
     setMfaEnrolling(true);
@@ -305,6 +352,7 @@ export function Settings() {
       if (verifyError) throw verifyError;
 
       toast({ title: 'Success', description: 'Two-factor authentication enabled successfully' });
+      await logActivity('2fa_enabled', 'Two-factor authentication was enabled');
       setMfaQrCode(null);
       setMfaSecret(null);
       setMfaFactorId(null);
@@ -324,6 +372,7 @@ export function Settings() {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
       if (error) throw error;
       toast({ title: 'Success', description: 'Two-factor authentication has been disabled' });
+      await logActivity('2fa_disabled', 'Two-factor authentication was disabled');
       await fetchMfaFactors();
     } catch (error) {
       logError('handleMfaUnenroll', error);
@@ -349,6 +398,7 @@ export function Settings() {
       const { error } = await supabase.auth.signOut({ scope: 'others' });
       if (error) throw error;
       toast({ title: 'Success', description: 'All other sessions have been signed out' });
+      await logActivity('sessions_revoked', 'All other sessions were signed out');
     } catch (error) {
       logError('handleSignOutOtherSessions', error);
       toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
@@ -358,8 +408,33 @@ export function Settings() {
   };
 
   const handleSignOut = async () => {
+    await logActivity('sign_out', 'Signed out from settings');
     await signOut();
     navigate('/auth');
+  };
+
+  const getActivityIcon = (eventType: string) => {
+    switch (eventType) {
+      case 'sign_in': return <KeyRound className="h-4 w-4 text-primary" />;
+      case 'sign_out': return <LogOut className="h-4 w-4 text-muted-foreground" />;
+      case 'password_change': return <Lock className="h-4 w-4 text-amber-500" />;
+      case '2fa_enabled': return <ShieldCheck className="h-4 w-4 text-green-500" />;
+      case '2fa_disabled': return <ShieldAlert className="h-4 w-4 text-destructive" />;
+      case 'sessions_revoked': return <Monitor className="h-4 w-4 text-amber-500" />;
+      case 'account_deleted': return <UserX className="h-4 w-4 text-destructive" />;
+      case 'profile_update': return <User className="h-4 w-4 text-primary" />;
+      default: return <History className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getActivityBadgeVariant = (eventType: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (eventType) {
+      case '2fa_disabled':
+      case 'account_deleted': return 'destructive';
+      case 'sign_in':
+      case '2fa_enabled': return 'default';
+      default: return 'secondary';
+    }
   };
 
   const getInitials = () => {
@@ -915,6 +990,65 @@ export function Settings() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Activity Log */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Account Activity
+              </CardTitle>
+              <CardDescription>Recent sign-ins and security events on your account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingActivity ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center gap-3 p-3">
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : activityLog.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No activity recorded yet</p>
+                  <p className="text-xs mt-1">Security events will appear here as they occur</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {activityLog.map((event) => (
+                    <div key={event.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="p-2 rounded-md bg-muted mt-0.5">
+                        {getActivityIcon(event.event_type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-foreground">{event.description}</p>
+                          <Badge variant={getActivityBadgeVariant(event.event_type)} className="text-[10px] px-1.5 py-0">
+                            {event.event_type.replace(/_/g, ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(event.created_at).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
