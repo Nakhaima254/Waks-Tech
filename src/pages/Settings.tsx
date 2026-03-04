@@ -277,8 +277,47 @@ export function Settings() {
   };
 
   useEffect(() => {
-    if (user) fetchMfaFactors();
+    if (user) {
+      fetchMfaFactors();
+      fetchActivityLog();
+    }
   }, [user]);
+
+  const logActivity = useCallback(async (eventType: string, description: string, metadata: Record<string, any> = {}) => {
+    if (!user) return;
+    try {
+      await supabase.from('account_activity').insert({
+        user_id: user.id,
+        event_type: eventType,
+        description,
+        user_agent: navigator.userAgent,
+        metadata,
+      });
+      // Refresh activity log
+      fetchActivityLog();
+    } catch (error) {
+      // Silent fail for logging
+    }
+  }, [user]);
+
+  const fetchActivityLog = async () => {
+    if (!user) return;
+    setIsLoadingActivity(true);
+    try {
+      const { data, error } = await supabase
+        .from('account_activity')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      setActivityLog(data || []);
+    } catch (error) {
+      logError('fetchActivityLog', error);
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
 
   const handleMfaEnroll = async () => {
     setMfaEnrolling(true);
