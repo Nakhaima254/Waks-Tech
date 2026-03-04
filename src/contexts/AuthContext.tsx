@@ -57,13 +57,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
     if (!error && data.user) {
+      const currentUA = navigator.userAgent;
+      
       // Log sign-in activity
       await supabase.from('account_activity').insert({
         user_id: data.user.id,
         event_type: 'sign_in',
         description: 'Signed in to account',
-        user_agent: navigator.userAgent,
+        user_agent: currentUA,
       });
+
+      // Check if this is a new device by comparing user agents
+      const { data: previousSessions } = await supabase
+        .from('account_activity')
+        .select('user_agent')
+        .eq('user_id', data.user.id)
+        .eq('event_type', 'sign_in')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      const knownAgents = new Set(
+        (previousSessions || [])
+          .filter(s => s.user_agent && s.user_agent !== currentUA)
+          .map(s => s.user_agent)
+      );
+
+      // If there are previous sign-ins but none with this user agent, it's a new device
+      const isNewDevice = previousSessions && previousSessions.length > 1 && 
+        !knownAgents.has(currentUA) === false ? false :
+        previousSessions && previousSessions.length > 1 && 
+        ![...knownAgents].some(agent => agent === currentUA);
+
+      // Actually simplify: check if current UA appeared before (excluding the one we just inserted)
+      const previousWithSameUA = (previousSessions || []).filter(
+        s => s.user_agent === currentUA
+      );
+      // We just inserted one, so if count is 1, this is the first time
+      const isFirstTimeDevice = previousSessions && previousSessions.length > 1 && previousWithSameUA.length <= 1;
+
+      if (isFirstTimeDevice) {
+        // Fetch user profile name
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', data.user.id)
+          .single();
+
+        // Send alert (fire and forget)
+        supabase.functions.invoke('send-suspicious-activity-alert', {
+          body: {
+            userEmail: data.user.email,
+            userName: profile?.full_name || data.user.email,
+            eventType: 'new_device',
+            userAgent: currentUA,
+            timestamp: new Date().toISOString(),
+          },
+        }).catch(err => console.error('Failed to send security alert:', err));
+
+        // Log the new device event
+        await supabase.from('account_activity').insert({
+          user_id: data.user.id,
+          event_type: 'new_device',
+          description: 'Sign-in from a new device detected',
+          user_agent: currentUA,
+        });
+      }
     }
     return { error };
   };
