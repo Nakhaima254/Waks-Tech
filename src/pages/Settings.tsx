@@ -992,7 +992,65 @@ export function Settings() {
             </CardContent>
           </Card>
 
-          <Card className="border-destructive/30">
+          {/* Activity Log */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Account Activity
+              </CardTitle>
+              <CardDescription>Recent sign-ins and security events on your account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingActivity ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center gap-3 p-3">
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : activityLog.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No activity recorded yet</p>
+                  <p className="text-xs mt-1">Security events will appear here as they occur</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {activityLog.map((event) => (
+                    <div key={event.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="p-2 rounded-md bg-muted mt-0.5">
+                        {getActivityIcon(event.event_type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-foreground">{event.description}</p>
+                          <Badge variant={getActivityBadgeVariant(event.event_type)} className="text-[10px] px-1.5 py-0">
+                            {event.event_type.replace(/_/g, ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(event.created_at).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
             <CardHeader>
               <CardTitle className="text-lg text-destructive flex items-center gap-2">
                 <Trash2 className="h-5 w-5" />
