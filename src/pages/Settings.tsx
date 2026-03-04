@@ -234,6 +234,7 @@ export function Settings() {
 
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       toast({ title: 'Success', description: 'Password updated successfully' });
+      await logActivity('password_change', 'Password was changed');
     } catch (error) {
       logError('handleChangePassword', error);
       toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
@@ -350,6 +351,7 @@ export function Settings() {
       if (verifyError) throw verifyError;
 
       toast({ title: 'Success', description: 'Two-factor authentication enabled successfully' });
+      await logActivity('2fa_enabled', 'Two-factor authentication was enabled');
       setMfaQrCode(null);
       setMfaSecret(null);
       setMfaFactorId(null);
@@ -369,6 +371,7 @@ export function Settings() {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
       if (error) throw error;
       toast({ title: 'Success', description: 'Two-factor authentication has been disabled' });
+      await logActivity('2fa_disabled', 'Two-factor authentication was disabled');
       await fetchMfaFactors();
     } catch (error) {
       logError('handleMfaUnenroll', error);
@@ -394,6 +397,7 @@ export function Settings() {
       const { error } = await supabase.auth.signOut({ scope: 'others' });
       if (error) throw error;
       toast({ title: 'Success', description: 'All other sessions have been signed out' });
+      await logActivity('sessions_revoked', 'All other sessions were signed out');
     } catch (error) {
       logError('handleSignOutOtherSessions', error);
       toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
@@ -403,8 +407,33 @@ export function Settings() {
   };
 
   const handleSignOut = async () => {
+    await logActivity('sign_out', 'Signed out from settings');
     await signOut();
     navigate('/auth');
+  };
+
+  const getActivityIcon = (eventType: string) => {
+    switch (eventType) {
+      case 'sign_in': return <KeyRound className="h-4 w-4 text-primary" />;
+      case 'sign_out': return <LogOut className="h-4 w-4 text-muted-foreground" />;
+      case 'password_change': return <Lock className="h-4 w-4 text-amber-500" />;
+      case '2fa_enabled': return <ShieldCheck className="h-4 w-4 text-green-500" />;
+      case '2fa_disabled': return <ShieldAlert className="h-4 w-4 text-destructive" />;
+      case 'sessions_revoked': return <Monitor className="h-4 w-4 text-amber-500" />;
+      case 'account_deleted': return <UserX className="h-4 w-4 text-destructive" />;
+      case 'profile_update': return <User className="h-4 w-4 text-primary" />;
+      default: return <History className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getActivityBadgeVariant = (eventType: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (eventType) {
+      case '2fa_disabled':
+      case 'account_deleted': return 'destructive';
+      case 'sign_in':
+      case '2fa_enabled': return 'default';
+      default: return 'secondary';
+    }
   };
 
   const getInitials = () => {
