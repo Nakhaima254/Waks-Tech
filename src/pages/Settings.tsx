@@ -1051,6 +1051,7 @@ export function Settings() {
             </CardContent>
           </Card>
 
+          <Card className="border-destructive/30">
             <CardHeader>
               <CardTitle className="text-lg text-destructive flex items-center gap-2">
                 <Trash2 className="h-5 w-5" />
