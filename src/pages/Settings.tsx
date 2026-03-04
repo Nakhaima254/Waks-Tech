@@ -61,7 +61,11 @@ export function Settings() {
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const [mfaUnenrolling, setMfaUnenrolling] = useState(false);
   
-  // Session state
+  // Activity log state
+  const [activityLog, setActivityLog] = useState<any[]>([]);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(true);
+  
+
   const [isRevokingOtherSessions, setIsRevokingOtherSessions] = useState(false);
   
   const [formData, setFormData] = useState({
