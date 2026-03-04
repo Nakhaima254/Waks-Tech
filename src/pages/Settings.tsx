@@ -152,6 +152,7 @@ export function Settings() {
         title: 'Success',
         description: 'Profile updated successfully',
       });
+      await logActivity('profile_update', 'Profile information was updated');
     } catch (error) {
       logError('handleSave', error);
       toast({
