@@ -164,6 +164,36 @@ export type Database = {
         }
         Relationships: []
       }
+      trusted_devices: {
+        Row: {
+          created_at: string
+          device_name: string
+          id: string
+          is_trusted: boolean
+          last_seen_at: string
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name?: string
+          id?: string
+          is_trusted?: boolean
+          last_seen_at?: string
+          user_agent: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string
+          id?: string
+          is_trusted?: boolean
+          last_seen_at?: string
+          user_agent?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -65,6 +65,10 @@ export function Settings() {
   const [activityLog, setActivityLog] = useState<any[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(true);
   
+  // Trusted devices state
+  const [trustedDevices, setTrustedDevices] = useState<any[]>([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(true);
+  const [removingDeviceId, setRemovingDeviceId] = useState<string | null>(null);
 
   const [isRevokingOtherSessions, setIsRevokingOtherSessions] = useState(false);
   
@@ -282,8 +286,76 @@ export function Settings() {
     if (user) {
       fetchMfaFactors();
       fetchActivityLog();
+      fetchTrustedDevices();
     }
   }, [user]);
+
+  const fetchTrustedDevices = async () => {
+    if (!user) return;
+    setIsLoadingDevices(true);
+    try {
+      const { data, error } = await supabase
+        .from('trusted_devices')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('last_seen_at', { ascending: false });
+      if (error) throw error;
+      setTrustedDevices(data || []);
+    } catch (error) {
+      logError('fetchTrustedDevices', error);
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  };
+
+  const parseDeviceName = (ua: string): { browser: string; os: string } => {
+    let browser = 'Unknown Browser';
+    let os = 'Unknown OS';
+    if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
+    else if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+    else if (ua.includes('Edg')) browser = 'Edge';
+    if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Mac OS')) os = 'macOS';
+    else if (ua.includes('Linux')) os = 'Linux';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+    return { browser, os };
+  };
+
+  const handleRemoveDevice = async (deviceId: string) => {
+    setRemovingDeviceId(deviceId);
+    try {
+      const { error } = await supabase
+        .from('trusted_devices')
+        .delete()
+        .eq('id', deviceId);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Device removed successfully' });
+      await logActivity('device_removed', 'A trusted device was removed');
+      await fetchTrustedDevices();
+    } catch (error) {
+      logError('handleRemoveDevice', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setRemovingDeviceId(null);
+    }
+  };
+
+  const handleToggleDeviceTrust = async (deviceId: string, currentlyTrusted: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('trusted_devices')
+        .update({ is_trusted: !currentlyTrusted })
+        .eq('id', deviceId);
+      if (error) throw error;
+      toast({ title: 'Success', description: currentlyTrusted ? 'Device marked as untrusted' : 'Device marked as trusted' });
+      await fetchTrustedDevices();
+    } catch (error) {
+      logError('handleToggleDeviceTrust', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    }
+  };
 
   const logActivity = useCallback(async (eventType: string, description: string, metadata: Record<string, any> = {}) => {
     if (!user) return;
@@ -990,6 +1062,116 @@ export function Settings() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Trusted Devices */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Trusted Devices
+              </CardTitle>
+              <CardDescription>Manage devices that have signed in to your account. Remove any you don't recognize.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingDevices ? (
+                <div className="space-y-3">
+                  {[1, 2].map(i => (
+                    <div key={i} className="flex items-center gap-3 p-3">
+                      <Skeleton className="h-10 w-10 rounded-md" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-1/3" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : trustedDevices.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Smartphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No devices recorded yet</p>
+                  <p className="text-xs mt-1">Devices will appear here after you sign in</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {trustedDevices.map((device) => {
+                    const { browser, os } = parseDeviceName(device.user_agent || '');
+                    const isCurrentDevice = device.user_agent === navigator.userAgent;
+                    return (
+                      <div key={device.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-md ${device.is_trusted ? 'bg-green-500/10' : 'bg-destructive/10'}`}>
+                            <Monitor className={`h-4 w-4 ${device.is_trusted ? 'text-green-600' : 'text-destructive'}`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">{browser} on {os}</p>
+                              {isCurrentDevice && (
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">This device</span>
+                              )}
+                              {device.is_trusted ? (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-600 border-green-500/30">Trusted</Badge>
+                              ) : (
+                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Untrusted</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {device.device_name !== 'Unknown Device' ? `${device.device_name} · ` : ''}
+                              Last seen {new Date(device.last_seen_at).toLocaleDateString(undefined, {
+                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleDeviceTrust(device.id, device.is_trusted)}
+                            className="text-xs"
+                          >
+                            {device.is_trusted ? (
+                              <><ShieldAlert className="h-3.5 w-3.5 mr-1" />Untrust</>
+                            ) : (
+                              <><ShieldCheck className="h-3.5 w-3.5 mr-1" />Trust</>
+                            )}
+                          </Button>
+                          {!isCurrentDevice && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive text-xs">
+                                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                                  Remove
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove this device?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will remove {browser} on {os} from your trusted devices. If the device signs in again, it will trigger a new device alert.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleRemoveDevice(device.id)}
+                                    disabled={removingDeviceId === device.id}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {removingDeviceId === device.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                    Remove Device
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -2,6 +2,20 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+function parseUA(ua: string): { browser: string; os: string } {
+  let browser = 'Unknown Browser';
+  let os = 'Unknown OS';
+  if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
+  else if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+  else if (ua.includes('Edg')) browser = 'Edge';
+  if (ua.includes('Windows')) os = 'Windows';
+  else if (ua.includes('Mac OS')) os = 'macOS';
+  else if (ua.includes('Linux')) os = 'Linux';
+  else if (ua.includes('Android')) os = 'Android';
+  else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+  return { browser, os };
+}
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -94,6 +108,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       // We just inserted one, so if count is 1, this is the first time
       const isFirstTimeDevice = previousSessions && previousSessions.length > 1 && previousWithSameUA.length <= 1;
+
+      // Upsert trusted device record
+      const { browser, os } = parseUA(currentUA);
+      await supabase.from('trusted_devices').upsert(
+        {
+          user_id: data.user.id,
+          user_agent: currentUA,
+          device_name: `${browser} on ${os}`,
+          last_seen_at: new Date().toISOString(),
+          is_trusted: !isFirstTimeDevice,
+        },
+        { onConflict: 'user_id,user_agent' }
+      );
 
       if (isFirstTimeDevice) {
         // Fetch user profile name
