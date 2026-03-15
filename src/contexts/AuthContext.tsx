@@ -95,6 +95,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // We just inserted one, so if count is 1, this is the first time
       const isFirstTimeDevice = previousSessions && previousSessions.length > 1 && previousWithSameUA.length <= 1;
 
+      // Upsert trusted device record
+      const { browser, os } = parseUA(currentUA);
+      await supabase.from('trusted_devices').upsert(
+        {
+          user_id: data.user.id,
+          user_agent: currentUA,
+          device_name: `${browser} on ${os}`,
+          last_seen_at: new Date().toISOString(),
+          is_trusted: !isFirstTimeDevice,
+        },
+        { onConflict: 'user_id,user_agent' }
+      );
+
       if (isFirstTimeDevice) {
         // Fetch user profile name
         const { data: profile } = await supabase
