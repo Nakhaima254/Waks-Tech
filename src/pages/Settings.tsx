@@ -286,8 +286,76 @@ export function Settings() {
     if (user) {
       fetchMfaFactors();
       fetchActivityLog();
+      fetchTrustedDevices();
     }
   }, [user]);
+
+  const fetchTrustedDevices = async () => {
+    if (!user) return;
+    setIsLoadingDevices(true);
+    try {
+      const { data, error } = await supabase
+        .from('trusted_devices')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('last_seen_at', { ascending: false });
+      if (error) throw error;
+      setTrustedDevices(data || []);
+    } catch (error) {
+      logError('fetchTrustedDevices', error);
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  };
+
+  const parseDeviceName = (ua: string): { browser: string; os: string } => {
+    let browser = 'Unknown Browser';
+    let os = 'Unknown OS';
+    if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
+    else if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+    else if (ua.includes('Edg')) browser = 'Edge';
+    if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Mac OS')) os = 'macOS';
+    else if (ua.includes('Linux')) os = 'Linux';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+    return { browser, os };
+  };
+
+  const handleRemoveDevice = async (deviceId: string) => {
+    setRemovingDeviceId(deviceId);
+    try {
+      const { error } = await supabase
+        .from('trusted_devices')
+        .delete()
+        .eq('id', deviceId);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Device removed successfully' });
+      await logActivity('device_removed', 'A trusted device was removed');
+      await fetchTrustedDevices();
+    } catch (error) {
+      logError('handleRemoveDevice', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setRemovingDeviceId(null);
+    }
+  };
+
+  const handleToggleDeviceTrust = async (deviceId: string, currentlyTrusted: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('trusted_devices')
+        .update({ is_trusted: !currentlyTrusted })
+        .eq('id', deviceId);
+      if (error) throw error;
+      toast({ title: 'Success', description: currentlyTrusted ? 'Device marked as untrusted' : 'Device marked as trusted' });
+      await fetchTrustedDevices();
+    } catch (error) {
+      logError('handleToggleDeviceTrust', error);
+      toast({ title: 'Error', description: getSafeErrorMessage(error), variant: 'destructive' });
+    }
+  };
 
   const logActivity = useCallback(async (eventType: string, description: string, metadata: Record<string, any> = {}) => {
     if (!user) return;
