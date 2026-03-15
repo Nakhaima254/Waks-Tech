@@ -65,6 +65,10 @@ export function Settings() {
   const [activityLog, setActivityLog] = useState<any[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(true);
   
+  // Trusted devices state
+  const [trustedDevices, setTrustedDevices] = useState<any[]>([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(true);
+  const [removingDeviceId, setRemovingDeviceId] = useState<string | null>(null);
 
   const [isRevokingOtherSessions, setIsRevokingOtherSessions] = useState(false);
   
